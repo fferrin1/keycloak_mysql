@@ -1,0 +1,48 @@
+version: '3'
+
+volumes:
+  mysql_data:
+      driver: local
+
+services:
+  mysql:
+      image: mysql:5.7
+      volumes:
+        - mysql_data:/var/lib/mysql
+      environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: keycloak
+        MYSQL_USER: keycloak
+        MYSQL_PASSWORD: ${PASSWORD_DB}
+  keycloak:
+      image: jboss/keycloak:latest
+      container_name: keycloak
+      hostname: keycloak
+      environment:
+        DB_VENDOR: MYSQL
+        DB_ADDR: mysql
+        DB_DATABASE: keycloak
+        DB_USER: keycloak
+        DB_PASSWORD: ${PASSWORD_DB}
+        KEYCLOAK_USER: admin
+        KEYCLOAK_PASSWORD: ${KEYCLOAK_PASSWORD_ADMIN}
+        PROXY_ADDRESS_FORWARDING: true
+      ports:
+        - 8080:8080
+      depends_on:
+        - mysql
+
+
+
+  proxy-https:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: proxy-https
+    restart: unless-stopped
+    ports:
+      # These ports are in format <host-port>:<container-port>
+      - '80:80'
+      - '443:443'
+      - '81:81'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
